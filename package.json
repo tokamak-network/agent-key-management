@@ -12,6 +12,16 @@
     "typecheck": "tsc -b"
   },
   "devDependencies": {
+    "@akm/types": "workspace:*",
+    "@akm/tee-core": "workspace:*",
+    "@akm/tee-simulator": "workspace:*",
+    "@akm/kms": "workspace:*",
+    "@akm/policy-engine": "workspace:*",
+    "@akm/attestation": "workspace:*",
+    "@akm/api-server": "workspace:*",
+    "viem": "^2.23.2",
+    "@noble/curves": "^1.8.1",
+    "@noble/hashes": "^1.7.1",
     "typescript": "^5.7.3",
     "vitest": "^3.0.4",
     "tsx": "^4.19.2"

@@ -8,12 +8,42 @@ importers:
 
   .:
     devDependencies:
+      '@akm/api-server':
+        specifier: workspace:*
+        version: link:apps/api-server
+      '@akm/attestation':
+        specifier: workspace:*
+        version: link:packages/attestation
+      '@akm/kms':
+        specifier: workspace:*
+        version: link:packages/kms
+      '@akm/policy-engine':
+        specifier: workspace:*
+        version: link:packages/policy-engine
+      '@akm/tee-core':
+        specifier: workspace:*
+        version: link:packages/tee-core
+      '@akm/tee-simulator':
+        specifier: workspace:*
+        version: link:packages/tee-simulator
+      '@akm/types':
+        specifier: workspace:*
+        version: link:packages/types
+      '@noble/curves':
+        specifier: ^1.8.1
+        version: 1.9.7
+      '@noble/hashes':
+        specifier: ^1.7.1
+        version: 1.8.0
       tsx:
         specifier: ^4.19.2
         version: 4.21.0
       typescript:
         specifier: ^5.7.3
         version: 5.9.3
+      viem:
+        specifier: ^2.23.2
+        version: 2.45.3(typescript@5.9.3)(zod@3.25.76)
       vitest:
         specifier: ^3.0.4
         version: 3.2.4(tsx@4.21.0)
@@ -44,6 +74,9 @@ importers:
       hono:
         specifier: ^4.7.4
         version: 4.11.9
+      viem:
+        specifier: ^2.23.2
+        version: 2.45.3(typescript@5.9.3)(zod@3.25.76)
       zod:
         specifier: ^3.24.1
         version: 3.25.76
@@ -60,9 +93,15 @@ importers:
 
   apps/demo-agent:
     dependencies:
+      '@akm/api-server':
+        specifier: workspace:*
+        version: link:../api-server
       '@akm/types':
         specifier: workspace:*
         version: link:../../packages/types
+      '@hono/node-server':
+        specifier: ^1.13.8
+        version: 1.19.9(hono@4.11.9)
     devDependencies:
       tsx:
         specifier: ^4.19.2
@@ -83,6 +122,9 @@ importers:
         specifier: ^1.7.1
         version: 1.8.0
     devDependencies:
+      '@akm/tee-simulator':
+        specifier: workspace:*
+        version: link:../tee-simulator
       typescript:
         specifier: ^5.7.3
         version: 5.9.3
@@ -98,6 +140,9 @@ importers:
       '@akm/tee-core':
         specifier: workspace:*
         version: link:../tee-core
+      '@akm/tee-simulator':
+        specifier: workspace:*
+        version: link:../tee-simulator
       '@akm/types':
         specifier: workspace:*
         version: link:../types
@@ -109,7 +154,7 @@ importers:
         version: 1.8.0
       viem:
         specifier: ^2.23.2
-        version: 2.45.3(typescript@5.9.3)
+        version: 2.45.3(typescript@5.9.3)(zod@3.25.76)
     devDependencies:
       typescript:
         specifier: ^5.7.3
@@ -170,7 +215,6 @@ packages:
 
   /@adraffy/ens-normalize@1.11.1:
     resolution: {integrity: sha512-nhCBV3quEgesuf7c7KYfperqSS14T8bYuvJ8PcLJp6znkZpFc0AuW4qBtr8eKVyPPe/8RSr7sglCWPU5eaxwKQ==}
-    dev: false
 
   /@esbuild/aix-ppc64@0.27.3:
     resolution: {integrity: sha512-9fJMTNFTWZMh5qwrBItuziu834eOCUcEqymSH7pY+zoMVEZg3gcPuBNxH1EvfVYe9h0x/Ptw8KBzv7qxb7l8dg==}
@@ -422,26 +466,22 @@ packages:
   /@noble/ciphers@1.3.0:
     resolution: {integrity: sha512-2I0gnIVPtfnMw9ee9h1dJG7tp81+8Ob3OJb3Mv37rx5L40/b0i7djjCVvGOVqc9AEIQyvyu1i6ypKdFw8R8gQw==}
     engines: {node: ^14.21.3 || >=16}
-    dev: false
 
   /@noble/curves@1.9.1:
     resolution: {integrity: sha512-k11yZxZg+t+gWvBbIswW0yoJlu8cHOC7dhunwOzoWH/mXGBiYyR4YY6hAEK/3EUs4UpB8la1RfdRpeGsFHkWsA==}
     engines: {node: ^14.21.3 || >=16}
     dependencies:
       '@noble/hashes': 1.8.0
-    dev: false
 
   /@noble/curves@1.9.7:
     resolution: {integrity: sha512-gbKGcRUYIjA3/zCCNaWDciTMFI0dCkvou3TL8Zmy5Nc7sJ47a0jtOeZoTaMxkuqRo9cRhjOdZJXegxYE5FN/xw==}
     engines: {node: ^14.21.3 || >=16}
     dependencies:
       '@noble/hashes': 1.8.0
-    dev: false
 
   /@noble/hashes@1.8.0:
     resolution: {integrity: sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A==}
     engines: {node: ^14.21.3 || >=16}
-    dev: false
 
   /@rollup/rollup-android-arm-eabi@4.57.1:
     resolution: {integrity: sha512-A6ehUVSiSaaliTxai040ZpZ2zTevHYbvu/lDoeAteHI8QnaosIzm4qwtezfRg1jOYaUmnzLX1AOD6Z+UJjtifg==}
@@ -645,7 +685,6 @@ packages:
 
   /@scure/base@1.2.6:
     resolution: {integrity: sha512-g/nm5FgUa//MCj1gV09zTJTaM6KBAHqLN907YVQqf7zC49+DcO4B1so4ZX07Ef10Twr6nuqYEH9GEggFXA4Fmg==}
-    dev: false
 
   /@scure/bip32@1.7.0:
     resolution: {integrity: sha512-E4FFX/N3f4B80AKWp5dP6ow+flD1LQZo/w8UnLGYZO674jS6YnYeepycOOksv+vLPSpgN35wgKgy+ybfTb2SMw==}
@@ -653,14 +692,12 @@ packages:
       '@noble/curves': 1.9.7
       '@noble/hashes': 1.8.0
       '@scure/base': 1.2.6
-    dev: false
 
   /@scure/bip39@1.6.0:
     resolution: {integrity: sha512-+lF0BbLiJNwVlev4eKelw1WWLaiKXw7sSl8T6FvBlWkdX+94aGJ4o8XjUdlyhTCjd8c+B3KT3JfS8P0bLRNU6A==}
     dependencies:
       '@noble/hashes': 1.8.0
       '@scure/base': 1.2.6
-    dev: false
 
   /@types/chai@5.2.3:
     resolution: {integrity: sha512-Mw558oeA9fFbv65/y4mHtXDs9bPnFMZAL/jxdPFUpOHHIXX91mcgEHbS5Lahr+pwZFR8A7GQleRWeI6cGFC2UA==}
@@ -740,7 +777,7 @@ packages:
       tinyrainbow: 2.0.0
     dev: true
 
-  /abitype@1.2.3(typescript@5.9.3):
+  /abitype@1.2.3(typescript@5.9.3)(zod@3.25.76):
     resolution: {integrity: sha512-Ofer5QUnuUdTFsBRwARMoWKOH1ND5ehwYhJ3OJ/BQO+StkwQjHw0XyVh4vDttzHB7QOFhPHa/o413PJ82gU/Tg==}
     peerDependencies:
       typescript: '>=5.0.4'
@@ -752,7 +789,7 @@ packages:
         optional: true
     dependencies:
       typescript: 5.9.3
-    dev: false
+      zod: 3.25.76
 
   /assertion-error@2.0.1:
     resolution: {integrity: sha512-Izi8RQcffqCeNVgFigKli1ssklIbpHnCYc6AknXGYoB6grJqyeby7jv12JUQgmTAnIDnbck1uxksT4dzN3PWBA==}
@@ -843,7 +880,6 @@ packages:
 
   /eventemitter3@5.0.1:
     resolution: {integrity: sha512-GWkBvjiSZK87ELrYOSESUYeVIc9mvLLf/nXalMOS5dYrgZq9o5OVkbZAVM06CVxYsCwH9BDZFPlQTlPA1j4ahA==}
-    dev: false
 
   /expect-type@1.3.0:
     resolution: {integrity: sha512-knvyeauYhqjOYvQ66MznSMs83wmHrCycNEN6Ao+2AeYEfxUIkuiVxdEa1qlGEPK+We3n0THiDciYSsCcgW/DoA==}
@@ -887,7 +923,6 @@ packages:
       ws: '*'
     dependencies:
       ws: 8.18.3
-    dev: false
 
   /js-tokens@9.0.1:
     resolution: {integrity: sha512-mxa9E9ITFOt0ban3j6L5MpjwegGz6lBQmM1IJkWeBZGcMxto50+eWdjC/52xDbS2vy0k7vIMK0Fe2wfL9OQSpQ==}
@@ -913,7 +948,7 @@ packages:
     hasBin: true
     dev: true
 
-  /ox@0.12.1(typescript@5.9.3):
+  /ox@0.12.1(typescript@5.9.3)(zod@3.25.76):
     resolution: {integrity: sha512-uU0llpthaaw4UJoXlseCyBHmQ3bLrQmz9rRLIAUHqv46uHuae9SE+ukYBRIPVCnlEnHKuWjDUcDFHWx9gbGNoA==}
     peerDependencies:
       typescript: '>=5.4.0'
@@ -927,12 +962,11 @@ packages:
       '@noble/hashes': 1.8.0
       '@scure/bip32': 1.7.0
       '@scure/bip39': 1.6.0
-      abitype: 1.2.3(typescript@5.9.3)
+      abitype: 1.2.3(typescript@5.9.3)(zod@3.25.76)
       eventemitter3: 5.0.1
       typescript: 5.9.3
     transitivePeerDependencies:
       - zod
-    dev: false
 
   /pathe@2.0.3:
     resolution: {integrity: sha512-WUjGcAqP1gQacoQe+OBJsFA7Ld4DyXuUIjZ5cc75cLHvJ7dtNsTugphxIADwspS+AraAUePCKrSVtPLFj/F88w==}
@@ -1070,7 +1104,7 @@ packages:
     engines: {node: '>=14.17'}
     hasBin: true
 
-  /viem@2.45.3(typescript@5.9.3):
+  /viem@2.45.3(typescript@5.9.3)(zod@3.25.76):
     resolution: {integrity: sha512-axOD7rIbGiDHHA1MHKmpqqTz3CMCw7YpE/FVypddQMXL5i364VkNZh9JeEJH17NO484LaZUOMueo35IXyL76Mw==}
     peerDependencies:
       typescript: '>=5.0.4'
@@ -1082,16 +1116,15 @@ packages:
       '@noble/hashes': 1.8.0
       '@scure/bip32': 1.7.0
       '@scure/bip39': 1.6.0
-      abitype: 1.2.3(typescript@5.9.3)
+      abitype: 1.2.3(typescript@5.9.3)(zod@3.25.76)
       isows: 1.0.7(ws@8.18.3)
-      ox: 0.12.1(typescript@5.9.3)
+      ox: 0.12.1(typescript@5.9.3)(zod@3.25.76)
       typescript: 5.9.3
       ws: 8.18.3
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
       - zod
-    dev: false
 
   /vite-node@3.2.4(tsx@4.21.0):
     resolution: {integrity: sha512-EbKSKh+bh1E1IFxeO0pg1n4dvoOTt0UDiXMd/qn++r98+jPO1xtJilvXldeuQ8giIB5IkpjCgMleHMNEsGH6pg==}
@@ -1255,8 +1288,6 @@ packages:
         optional: true
       utf-8-validate:
         optional: true
-    dev: false
 
   /zod@3.25.76:
     resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
-    dev: false
