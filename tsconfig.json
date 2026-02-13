@@ -1,0 +1,13 @@
+{
+  "references": [
+    { "path": "packages/types" },
+    { "path": "packages/tee-core" },
+    { "path": "packages/tee-simulator" },
+    { "path": "packages/kms" },
+    { "path": "packages/policy-engine" },
+    { "path": "packages/attestation" },
+    { "path": "apps/api-server" },
+    { "path": "apps/demo-agent" }
+  ],
+  "files": []
+}

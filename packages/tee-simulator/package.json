@@ -1,0 +1,21 @@
+{
+  "name": "@akm/tee-simulator",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@akm/types": "workspace:*",
+    "@akm/tee-core": "workspace:*",
+    "@noble/hashes": "^1.7.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.4"
+  }
+}
