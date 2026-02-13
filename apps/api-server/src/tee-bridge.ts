@@ -31,8 +31,12 @@ export async function createTeeServices(): Promise<TeeServices> {
     case 'simulator':
       runtime = new SimulatedRuntime({ fixedMeasurement: 'akm-poc-v1' });
       break;
+    case 'dstack': {
+      const { DstackRuntime } = await import('@akm/tee-dstack');
+      runtime = new DstackRuntime({ endpoint: process.env.DSTACK_ENDPOINT });
+      break;
+    }
     // Future:
-    // case 'dstack': runtime = new DstackRuntime(); break;
     // case 'nitro':  runtime = new NitroRuntime(); break;
     default:
       throw new Error(`Unknown TEE provider: ${provider}`);

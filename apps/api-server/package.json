@@ -15,6 +15,7 @@
     "@akm/types": "workspace:*",
     "@akm/tee-core": "workspace:*",
     "@akm/tee-simulator": "workspace:*",
+    "@akm/tee-dstack": "workspace:*",
     "@akm/kms": "workspace:*",
     "@akm/policy-engine": "workspace:*",
     "@akm/attestation": "workspace:*",
