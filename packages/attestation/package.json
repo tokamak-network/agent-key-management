@@ -15,6 +15,7 @@
     "@noble/hashes": "^1.7.1"
   },
   "devDependencies": {
+    "@akm/tee-simulator": "workspace:*",
     "typescript": "^5.7.3",
     "vitest": "^3.0.4"
   }
