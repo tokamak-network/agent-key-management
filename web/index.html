@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TEE Agent KMS &mdash; Interactive Demo</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: 'Inter', system-ui, sans-serif; }
+    .act-card { transition: opacity 0.3s; }
+    .act-card.disabled { opacity: 0.4; pointer-events: none; }
+    .result-box { font-family: 'Menlo', 'Consolas', monospace; font-size: 0.8rem; }
+    .log-entry { animation: fadeIn 0.3s ease-in; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 9999px; font-size: 0.7rem; font-weight: 600; }
+    .badge-active { background: #dcfce7; color: #166534; }
+    .badge-rotated { background: #fef9c3; color: #854d0e; }
+    .badge-denied { background: #fee2e2; color: #991b1b; }
+    .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid #e5e7eb; border-top-color: #6366f1; border-radius: 50%; animation: spin 0.6s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen">
+
+  <!-- Header -->
+  <header class="border-b border-gray-800 px-6 py-4">
+    <h1 class="text-xl font-bold tracking-tight">
+      <span class="text-indigo-400">TEE</span> Agent Key Management
+      <span class="text-gray-500 font-normal ml-2">&mdash; Interactive Demo</span>
+    </h1>
+  </header>
+
+  <div class="flex flex-col lg:flex-row gap-6 p-6 max-w-7xl mx-auto">
+
+    <!-- Main Column -->
+    <main class="flex-1 space-y-5">
+
+      <!-- Act 1: Boot TEE -->
+      <section id="act1" class="act-card bg-gray-900 rounded-xl border border-gray-800 p-5">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="bg-indigo-500/20 text-indigo-300 text-xs font-bold px-2 py-0.5 rounded">ACT 1</span>
+          <h2 class="font-semibold">Boot TEE Runtime</h2>
+        </div>
+        <p class="text-gray-400 text-sm mb-4">Initialize the simulated Trusted Execution Environment and measure the enclave code.</p>
+        <button onclick="bootRuntime()" id="btn-boot" class="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
+          Boot Runtime &#9654;
+        </button>
+        <div id="result-boot" class="mt-3 hidden result-box bg-gray-950 border border-gray-800 rounded-lg p-3 text-green-400"></div>
+      </section>
+
+      <!-- Act 2: Root Key -->
+      <section id="act2" class="act-card disabled bg-gray-900 rounded-xl border border-gray-800 p-5">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="bg-indigo-500/20 text-indigo-300 text-xs font-bold px-2 py-0.5 rounded">ACT 2</span>
+          <h2 class="font-semibold">Initialize Root Key</h2>
+        </div>
+        <p class="text-gray-400 text-sm mb-4">Generate and seal the master root key inside the TEE. All agent keys are derived from this key.</p>
+        <button onclick="initRootKey()" id="btn-init" class="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
+          Initialize Root Key &#9654;
+        </button>
+        <div id="result-init" class="mt-3 hidden result-box bg-gray-950 border border-gray-800 rounded-lg p-3 text-green-400"></div>
+      </section>
+
+      <!-- Act 3: Agent Key + Signing -->
+      <section id="act3" class="act-card disabled bg-gray-900 rounded-xl border border-gray-800 p-5">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="bg-indigo-500/20 text-indigo-300 text-xs font-bold px-2 py-0.5 rounded">ACT 3</span>
+          <h2 class="font-semibold">Create Agent Key &amp; Sign</h2>
+        </div>
+        <p class="text-gray-400 text-sm mb-4">Derive a child key for an agent and use it to sign messages and transactions.</p>
+
+        <!-- Create key -->
+        <div class="flex gap-2 items-end mb-3">
+          <div class="flex-1">
+            <label class="text-xs text-gray-500 block mb-1">Agent ID</label>
+            <input id="input-agentId" type="text" value="dao-agent" class="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500" />
+          </div>
+          <button onclick="createKey()" id="btn-createKey" class="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition whitespace-nowrap">
+            Create Key &#9654;
+          </button>
+        </div>
+        <div id="result-createKey" class="mb-4 hidden result-box bg-gray-950 border border-gray-800 rounded-lg p-3 text-green-400"></div>
+
+        <!-- Sign message -->
+        <div id="sign-section" class="hidden space-y-3">
+          <hr class="border-gray-800" />
+          <div class="flex gap-2 items-end">
+            <div class="flex-1">
+              <label class="text-xs text-gray-500 block mb-1">Message</label>
+              <input id="input-message" type="text" value="Hello from TEE!" class="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500" />
+            </div>
+            <button onclick="signMessage()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition whitespace-nowrap">
+              Sign Message &#9654;
+            </button>
+          </div>
+          <div id="result-signMsg" class="hidden result-box bg-gray-950 border border-gray-800 rounded-lg p-3 text-green-400"></div>
+
+          <!-- Sign transaction -->
+          <div class="flex gap-2 items-end">
+            <div class="flex-1">
+              <label class="text-xs text-gray-500 block mb-1">Value (ETH)</label>
+              <input id="input-txValue" type="text" value="0.1" class="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500" />
+            </div>
+            <button onclick="signTransaction()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition whitespace-nowrap">
+              Sign Transaction &#9654;
+            </button>
+          </div>
+          <div id="result-signTx" class="hidden result-box bg-gray-950 border border-gray-800 rounded-lg p-3 text-green-400"></div>
+        </div>
+      </section>
+
+      <!-- Act 4: Policy -->
+      <section id="act4" class="act-card disabled bg-gray-900 rounded-xl border border-gray-800 p-5">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="bg-indigo-500/20 text-indigo-300 text-xs font-bold px-2 py-0.5 rounded">ACT 4</span>
+          <h2 class="font-semibold">Policy Enforcement</h2>
+        </div>
+        <p class="text-gray-400 text-sm mb-4">Attach spending and caller policies, then test enforcement with allowed and denied transactions.</p>
+
+        <div class="grid grid-cols-3 gap-2 mb-3">
+          <div>
+            <label class="text-xs text-gray-500 block mb-1">Allowed Caller</label>
+            <input id="input-caller" type="text" value="web-demo" class="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500" />
+          </div>
+          <div>
+            <label class="text-xs text-gray-500 block mb-1">Max ETH / Tx</label>
+            <input id="input-maxTx" type="text" value="1" class="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500" />
+          </div>
+          <div>
+            <label class="text-xs text-gray-500 block mb-1">Max ETH / Day</label>
+            <input id="input-maxDay" type="text" value="5" class="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500" />
+          </div>
+        </div>
+        <button onclick="setupPolicy()" id="btn-policy" class="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
+          Setup Policy &#9654;
+        </button>
+        <div id="result-policy" class="mt-3 hidden result-box bg-gray-950 border border-gray-800 rounded-lg p-3 text-green-400"></div>
+
+        <div id="policy-tests" class="hidden mt-4 space-y-2">
+          <hr class="border-gray-800" />
+          <p class="text-xs text-gray-500">Test policy enforcement:</p>
+          <div class="flex gap-2 flex-wrap">
+            <button onclick="testPolicy('0.1','web-demo')" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition">
+              Test 0.1 ETH (allowed) &#9654;
+            </button>
+            <button onclick="testPolicy('2','web-demo')" class="bg-amber-600 hover:bg-amber-500 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition">
+              Test 2 ETH (over limit) &#9654;
+            </button>
+            <button onclick="testPolicy('0.1','hacker')" class="bg-red-600 hover:bg-red-500 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition">
+              Test Unauthorized Caller &#9654;
+            </button>
+          </div>
+          <div id="result-policyTest" class="hidden result-box bg-gray-950 border border-gray-800 rounded-lg p-3"></div>
+        </div>
+      </section>
+
+      <!-- Act 5: Key Rotation -->
+      <section id="act5" class="act-card disabled bg-gray-900 rounded-xl border border-gray-800 p-5">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="bg-indigo-500/20 text-indigo-300 text-xs font-bold px-2 py-0.5 rounded">ACT 5</span>
+          <h2 class="font-semibold">Key Rotation</h2>
+        </div>
+        <p class="text-gray-400 text-sm mb-4">Rotate the agent key to a new epoch. The old key is marked as rotated and a new derived key takes its place.</p>
+        <button onclick="rotateKey()" id="btn-rotate" class="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
+          Rotate Key &#9654;
+        </button>
+        <div id="result-rotate" class="mt-3 hidden result-box bg-gray-950 border border-gray-800 rounded-lg p-3 text-green-400"></div>
+      </section>
+
+    </main>
+
+    <!-- Sidebar -->
+    <aside class="w-full lg:w-80 space-y-5">
+
+      <!-- TEE State -->
+      <div class="bg-gray-900 rounded-xl border border-gray-800 p-5">
+        <h3 class="font-semibold text-sm mb-3 text-gray-300">TEE State</h3>
+        <div id="state-panel" class="text-sm space-y-2">
+          <div class="flex justify-between">
+            <span class="text-gray-500">Runtime</span>
+            <span id="state-runtime" class="text-gray-600">Not booted</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-gray-500">Root Key</span>
+            <span id="state-rootkey" class="text-gray-600">Not initialized</span>
+          </div>
+          <hr class="border-gray-800" />
+          <div>
+            <span class="text-gray-500 text-xs">Active Keys</span>
+            <div id="state-keys" class="mt-1 text-xs text-gray-600">None</div>
+          </div>
+          <hr class="border-gray-800" />
+          <div>
+            <span class="text-gray-500 text-xs">Policy Rules</span>
+            <div id="state-policy" class="mt-1 text-xs text-gray-600">None</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Activity Log -->
+      <div class="bg-gray-900 rounded-xl border border-gray-800 p-5">
+        <div class="flex justify-between items-center mb-3">
+          <h3 class="font-semibold text-sm text-gray-300">Activity Log</h3>
+          <button onclick="document.getElementById('log-entries').innerHTML=''" class="text-xs text-gray-600 hover:text-gray-400">Clear</button>
+        </div>
+        <div id="log-entries" class="space-y-1 max-h-96 overflow-y-auto text-xs font-mono"></div>
+      </div>
+
+    </aside>
+  </div>
+
+<script>
+// --- State ---
+let currentKeyId = null;
+let currentAddress = null;
+
+// --- Helpers ---
+function truncate(s, n = 16) {
+  if (!s) return '';
+  return s.length > n ? s.slice(0, n) + '...' : s;
+}
+
+function showResult(id, html, isError = false) {
+  const el = document.getElementById(id);
+  el.classList.remove('hidden');
+  el.className = el.className.replace(/text-(green|red|amber)-400/g, '');
+  el.classList.add(isError ? 'text-red-400' : 'text-green-400');
+  el.innerHTML = html;
+}
+
+function addLog(msg, type = 'info') {
+  const colors = { info: 'text-gray-400', success: 'text-green-400', error: 'text-red-400', warn: 'text-amber-400' };
+  const time = new Date().toLocaleTimeString('en-US', { hour12: false });
+  const entry = document.createElement('div');
+  entry.className = `log-entry ${colors[type] || colors.info}`;
+  entry.innerHTML = `<span class="text-gray-600">${time}</span> ${msg}`;
+  const log = document.getElementById('log-entries');
+  log.prepend(entry);
+}
+
+function enableAct(n) {
+  document.getElementById('act' + n).classList.remove('disabled');
+}
+
+async function api(path, body) {
+  const opts = body !== undefined
+    ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
+    : { method: 'GET' };
+  const res = await fetch(path, opts);
+  const data = await res.json();
+  if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`);
+  return data;
+}
+
+async function refreshState() {
+  try {
+    const s = await api('/api/state');
+    document.getElementById('state-runtime').textContent = s.booted ? 'Booted' : 'Not booted';
+    document.getElementById('state-runtime').className = s.booted ? 'text-green-400' : 'text-gray-600';
+    document.getElementById('state-rootkey').textContent = s.initialized ? 'Initialized' : 'Not initialized';
+    document.getElementById('state-rootkey').className = s.initialized ? 'text-green-400' : 'text-gray-600';
+
+    if (s.keys.length > 0) {
+      document.getElementById('state-keys').innerHTML = s.keys.map(k =>
+        `<div class="flex justify-between items-center py-0.5">
+          <span class="text-gray-300">${k.agentId} <span class="text-gray-600">epoch-${k.epoch}</span></span>
+          <span class="badge ${k.status === 'active' ? 'badge-active' : 'badge-rotated'}">${k.status}</span>
+        </div>
+        <div class="text-gray-500 mb-1">${truncate(k.address, 20)}</div>`
+      ).join('');
+    } else {
+      document.getElementById('state-keys').textContent = 'None';
+    }
+
+    if (s.policyRules.length > 0) {
+      document.getElementById('state-policy').innerHTML = s.policyRules.map(r =>
+        `<div class="text-gray-300 py-0.5">${r.name} <span class="text-gray-600">(${r.type})</span></div>`
+      ).join('');
+    } else {
+      document.getElementById('state-policy').textContent = 'None';
+    }
+  } catch {}
+}
+
+function setLoading(btnId, loading) {
+  const btn = document.getElementById(btnId);
+  if (!btn) return;
+  if (loading) {
+    btn.disabled = true;
+    btn.dataset.origText = btn.innerHTML;
+    btn.innerHTML = '<span class="spinner"></span>';
+  } else {
+    btn.disabled = false;
+    btn.innerHTML = btn.dataset.origText || btn.innerHTML;
+  }
+}
+
+// --- Actions ---
+
+async function bootRuntime() {
+  setLoading('btn-boot', true);
+  try {
+    const data = await api('/api/boot', {});
+    showResult('result-boot', `&#10003; Runtime booted<br/>Measurement: <span class="text-indigo-300">${data.measurement}</span>`);
+    addLog('TEE runtime booted', 'success');
+    enableAct(2);
+    refreshState();
+  } catch (e) {
+    showResult('result-boot', `&#10007; ${e.message}`, true);
+    addLog(`Boot failed: ${e.message}`, 'error');
+  } finally {
+    setLoading('btn-boot', false);
+  }
+}
+
+async function initRootKey() {
+  setLoading('btn-init', true);
+  try {
+    const data = await api('/api/init', {});
+    showResult('result-init', `&#10003; Root key initialized<br/>Public Key: <span class="text-indigo-300">${truncate(data.rootPublicKey, 32)}</span>`);
+    addLog('Root key initialized', 'success');
+    enableAct(3);
+    refreshState();
+  } catch (e) {
+    showResult('result-init', `&#10007; ${e.message}`, true);
+    addLog(`Init failed: ${e.message}`, 'error');
+  } finally {
+    setLoading('btn-init', false);
+  }
+}
+
+async function createKey() {
+  setLoading('btn-createKey', true);
+  try {
+    const agentId = document.getElementById('input-agentId').value || 'dao-agent';
+    const data = await api('/api/keys', { agentId });
+    currentKeyId = data.keyId;
+    currentAddress = data.ethereumAddress;
+    showResult('result-createKey',
+      `&#10003; Key created<br/>` +
+      `Key ID: <span class="text-indigo-300">${data.keyId}</span><br/>` +
+      `Address: <span class="text-indigo-300">${data.ethereumAddress}</span>`
+    );
+    addLog(`Key created for ${agentId}: ${truncate(data.ethereumAddress)}`, 'success');
+    document.getElementById('sign-section').classList.remove('hidden');
+    enableAct(4);
+    enableAct(5);
+    refreshState();
+  } catch (e) {
+    showResult('result-createKey', `&#10007; ${e.message}`, true);
+    addLog(`Key creation failed: ${e.message}`, 'error');
+  } finally {
+    setLoading('btn-createKey', false);
+  }
+}
+
+async function signMessage() {
+  try {
+    const message = document.getElementById('input-message').value || 'Hello from TEE!';
+    const data = await api('/api/sign/message', { keyId: currentKeyId, callerId: 'web-demo', message });
+    showResult('result-signMsg',
+      `&#10003; Message signed<br/>Signature: <span class="text-indigo-300">${truncate(data.signature, 32)}</span>`
+    );
+    addLog(`Signed message: "${truncate(message, 20)}"`, 'success');
+  } catch (e) {
+    showResult('result-signMsg', `&#10007; ${e.message}`, true);
+    addLog(`Sign message failed: ${e.message}`, 'error');
+  }
+}
+
+async function signTransaction() {
+  try {
+    const value = document.getElementById('input-txValue').value || '0.1';
+    const data = await api('/api/sign/transaction', {
+      keyId: currentKeyId, callerId: 'web-demo',
+      to: '0x0000000000000000000000000000000000000001', value
+    });
+    showResult('result-signTx',
+      `&#10003; Transaction signed<br/>` +
+      `Hash: <span class="text-indigo-300">${truncate(data.hash, 32)}</span><br/>` +
+      `From: <span class="text-indigo-300">${data.from}</span>`
+    );
+    addLog(`Signed tx: ${value} ETH`, 'success');
+  } catch (e) {
+    showResult('result-signTx', `&#10007; ${e.message}`, true);
+    addLog(`Sign tx failed: ${e.message}`, 'error');
+  }
+}
+
+async function setupPolicy() {
+  setLoading('btn-policy', true);
+  try {
+    const allowedCallers = [document.getElementById('input-caller').value || 'web-demo'];
+    const maxPerTxEth = document.getElementById('input-maxTx').value || '1';
+    const maxPerDayEth = document.getElementById('input-maxDay').value || '5';
+    const data = await api('/api/policy/setup', { allowedCallers, maxPerTxEth, maxPerDayEth });
+    showResult('result-policy',
+      `&#10003; Policy configured<br/>` +
+      data.rules.map(r => `<span class="text-indigo-300">${r.name}</span>: ${r.detail}`).join('<br/>')
+    );
+    addLog(`Policy set: ${data.rules.length} rules`, 'success');
+    document.getElementById('policy-tests').classList.remove('hidden');
+    refreshState();
+  } catch (e) {
+    showResult('result-policy', `&#10007; ${e.message}`, true);
+    addLog(`Policy setup failed: ${e.message}`, 'error');
+  } finally {
+    setLoading('btn-policy', false);
+  }
+}
+
+async function testPolicy(ethValue, callerId) {
+  try {
+    const data = await api('/api/sign/transaction', {
+      keyId: currentKeyId, callerId,
+      to: '0x0000000000000000000000000000000000000001', value: ethValue
+    });
+    showResult('result-policyTest',
+      `<span class="text-green-400">&#10003; ALLOWED</span> &mdash; ${ethValue} ETH from "${callerId}"<br/>` +
+      `Hash: <span class="text-indigo-300">${truncate(data.hash, 32)}</span>`
+    );
+    addLog(`Policy test: ${ethValue} ETH by ${callerId} - ALLOWED`, 'success');
+  } catch (e) {
+    showResult('result-policyTest',
+      `<span class="text-red-400">&#10007; DENIED</span> &mdash; ${ethValue} ETH from "${callerId}"<br/>` +
+      `Reason: <span class="text-amber-400">${e.message}</span>`
+    );
+    addLog(`Policy test: ${ethValue} ETH by ${callerId} - DENIED`, 'warn');
+  }
+}
+
+async function rotateKey() {
+  setLoading('btn-rotate', true);
+  try {
+    const data = await api('/api/keys/rotate', { keyId: currentKeyId });
+    currentKeyId = data.newKey.keyId;
+    currentAddress = data.newKey.address;
+    showResult('result-rotate',
+      `&#10003; Key rotated<br/>` +
+      `Old: <span class="text-gray-500">${data.oldKey.keyId}</span> <span class="badge badge-rotated">${data.oldKey.status}</span><br/>` +
+      `New: <span class="text-indigo-300">${data.newKey.keyId}</span> (epoch-${data.newKey.epoch})<br/>` +
+      `Address: <span class="text-indigo-300">${data.newKey.address}</span>`
+    );
+    addLog(`Key rotated to epoch-${data.newKey.epoch}`, 'success');
+    refreshState();
+  } catch (e) {
+    showResult('result-rotate', `&#10007; ${e.message}`, true);
+    addLog(`Rotation failed: ${e.message}`, 'error');
+  } finally {
+    setLoading('btn-rotate', false);
+  }
+}
+
+// Poll state every 3 seconds
+setInterval(refreshState, 3000);
+refreshState();
+</script>
+
+</body>
+</html>

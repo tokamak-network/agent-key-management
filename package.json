@@ -9,24 +9,29 @@
     "test:integration": "vitest run --project integration",
     "test:e2e": "vitest run --project e2e",
     "demo": "tsx apps/demo-agent/src/main.ts",
+    "dev:web": "tsx web/server.ts",
     "typecheck": "tsc -b"
   },
   "devDependencies": {
-    "@akm/types": "workspace:*",
-    "@akm/tee-core": "workspace:*",
-    "@akm/tee-simulator": "workspace:*",
+    "@akm/api-server": "workspace:*",
+    "@akm/attestation": "workspace:*",
     "@akm/kms": "workspace:*",
     "@akm/policy-engine": "workspace:*",
-    "@akm/attestation": "workspace:*",
-    "@akm/api-server": "workspace:*",
-    "viem": "^2.23.2",
+    "@akm/tee-core": "workspace:*",
+    "@akm/tee-simulator": "workspace:*",
+    "@akm/types": "workspace:*",
     "@noble/curves": "^1.8.1",
     "@noble/hashes": "^1.7.1",
+    "tsx": "^4.19.2",
     "typescript": "^5.7.3",
-    "vitest": "^3.0.4",
-    "tsx": "^4.19.2"
+    "viem": "^2.23.2",
+    "vitest": "^3.0.4"
   },
   "engines": {
     "node": ">=20"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.13.8",
+    "hono": "^4.7.4"
   }
 }

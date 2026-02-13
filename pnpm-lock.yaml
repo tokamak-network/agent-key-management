@@ -7,6 +7,13 @@ settings:
 importers:
 
   .:
+    dependencies:
+      '@hono/node-server':
+        specifier: ^1.13.8
+        version: 1.19.9(hono@4.11.9)
+      hono:
+        specifier: ^4.7.4
+        version: 4.11.9
     devDependencies:
       '@akm/api-server':
         specifier: workspace:*
