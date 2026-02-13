@@ -6,3 +6,4 @@ dist/
 *.sealed
 .tee-storage/
 coverage/
+presentation.html
