@@ -12,6 +12,7 @@
   "dependencies": {
     "@akm/types": "workspace:*",
     "@akm/tee-core": "workspace:*",
+    "@akm/tee-simulator": "workspace:*",
     "@akm/policy-engine": "workspace:*",
     "@noble/hashes": "^1.7.1",
     "@noble/curves": "^1.8.1",
