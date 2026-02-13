@@ -16,8 +16,19 @@
     .badge-active { background: #dcfce7; color: #166534; }
     .badge-rotated { background: #fef9c3; color: #854d0e; }
     .badge-denied { background: #fee2e2; color: #991b1b; }
+    .badge-provider { background: #e0e7ff; color: #3730a3; }
+    .badge-dstack { background: #fce7f3; color: #9d174d; }
     .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid #e5e7eb; border-top-color: #6366f1; border-radius: 50%; animation: spin 0.6s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
+    .provider-btn { transition: all 0.15s; }
+    .provider-btn.selected { ring: 2px; }
+    .arch-note { border-left: 3px solid #6366f1; }
+    .arch-note-dstack { border-left-color: #ec4899; }
+    .flow-step { position: relative; padding-left: 2rem; }
+    .flow-step::before { content: ''; position: absolute; left: 0.6rem; top: 1.75rem; bottom: -0.5rem; width: 2px; background: #374151; }
+    .flow-step:last-child::before { display: none; }
+    .flow-step-dot { position: absolute; left: 0.25rem; top: 0.45rem; width: 1rem; height: 1rem; border-radius: 50%; border: 2px solid #6366f1; background: #1f2937; }
+    .flow-step-dot.done { background: #6366f1; }
   </style>
 </head>
 <body class="bg-gray-950 text-gray-100 min-h-screen">
@@ -28,6 +39,7 @@
       <span class="text-indigo-400">TEE</span> Agent Key Management
       <span class="text-gray-500 font-normal ml-2">&mdash; Interactive Demo</span>
     </h1>
+    <p class="text-gray-500 text-sm mt-1">Explore how TEE-based key management works with different providers</p>
   </header>
 
   <div class="flex flex-col lg:flex-row gap-6 p-6 max-w-7xl mx-auto">
@@ -41,11 +53,39 @@
           <span class="bg-indigo-500/20 text-indigo-300 text-xs font-bold px-2 py-0.5 rounded">ACT 1</span>
           <h2 class="font-semibold">Boot TEE Runtime</h2>
         </div>
-        <p class="text-gray-400 text-sm mb-4">Initialize the simulated Trusted Execution Environment and measure the enclave code.</p>
+        <p class="text-gray-400 text-sm mb-4">Choose a TEE provider and boot the runtime. Both providers implement the same <code class="text-indigo-300 text-xs">ITeeRuntime</code> interface.</p>
+
+        <!-- Provider Selection -->
+        <div class="mb-4">
+          <label class="text-xs text-gray-500 block mb-2">TEE Provider</label>
+          <div class="flex gap-3">
+            <button onclick="selectProvider('simulator')" id="provider-simulator"
+              class="provider-btn flex-1 bg-gray-950 border-2 border-indigo-500 rounded-lg p-3 text-left transition hover:border-indigo-400">
+              <div class="flex items-center gap-2 mb-1">
+                <span class="text-indigo-400 font-semibold text-sm">Simulator</span>
+                <span class="badge badge-active">Ready</span>
+              </div>
+              <p class="text-gray-500 text-xs">In-memory simulation. No hardware required. Perfect for development and testing.</p>
+            </button>
+            <button onclick="selectProvider('dstack')" id="provider-dstack"
+              class="provider-btn flex-1 bg-gray-950 border-2 border-gray-700 rounded-lg p-3 text-left transition hover:border-pink-400">
+              <div class="flex items-center gap-2 mb-1">
+                <span class="text-pink-400 font-semibold text-sm">dstack (TDX)</span>
+                <span class="badge badge-dstack">Hardware</span>
+              </div>
+              <p class="text-gray-500 text-xs">Phala dstack on Intel TDX. Requires dstack simulator at <code class="text-gray-400">DSTACK_ENDPOINT</code>.</p>
+            </button>
+          </div>
+        </div>
+
         <button onclick="bootRuntime()" id="btn-boot" class="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
           Boot Runtime &#9654;
         </button>
         <div id="result-boot" class="mt-3 hidden result-box bg-gray-950 border border-gray-800 rounded-lg p-3 text-green-400"></div>
+
+        <!-- Architecture Note -->
+        <div id="arch-boot" class="hidden mt-4 arch-note bg-gray-950/50 rounded-r-lg p-3 text-xs text-gray-400">
+        </div>
       </section>
 
       <!-- Act 2: Root Key -->
@@ -54,11 +94,14 @@
           <span class="bg-indigo-500/20 text-indigo-300 text-xs font-bold px-2 py-0.5 rounded">ACT 2</span>
           <h2 class="font-semibold">Initialize Root Key</h2>
         </div>
-        <p class="text-gray-400 text-sm mb-4">Generate and seal the master root key inside the TEE. All agent keys are derived from this key.</p>
+        <p class="text-gray-400 text-sm mb-4">Generate and seal the master root key inside the TEE. All agent keys are derived from this key via HKDF-SHA256.</p>
         <button onclick="initRootKey()" id="btn-init" class="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
           Initialize Root Key &#9654;
         </button>
         <div id="result-init" class="mt-3 hidden result-box bg-gray-950 border border-gray-800 rounded-lg p-3 text-green-400"></div>
+
+        <div id="arch-init" class="hidden mt-4 arch-note bg-gray-950/50 rounded-r-lg p-3 text-xs text-gray-400">
+        </div>
       </section>
 
       <!-- Act 3: Agent Key + Signing -->
@@ -154,10 +197,36 @@
         </div>
       </section>
 
-      <!-- Act 5: Key Rotation -->
+      <!-- Act 5: Attestation -->
       <section id="act5" class="act-card disabled bg-gray-900 rounded-xl border border-gray-800 p-5">
         <div class="flex items-center gap-2 mb-3">
           <span class="bg-indigo-500/20 text-indigo-300 text-xs font-bold px-2 py-0.5 rounded">ACT 5</span>
+          <h2 class="font-semibold">Remote Attestation</h2>
+        </div>
+        <p class="text-gray-400 text-sm mb-4">Generate an attestation quote that proves the TEE identity and root key binding, then verify it.</p>
+
+        <div class="space-y-3">
+          <button onclick="generateQuote()" id="btn-quote" class="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
+            Generate Quote &#9654;
+          </button>
+          <div id="result-quote" class="hidden result-box bg-gray-950 border border-gray-800 rounded-lg p-3 text-green-400"></div>
+
+          <div id="verify-section" class="hidden">
+            <button onclick="verifyQuote()" id="btn-verify" class="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
+              Verify Quote &#9654;
+            </button>
+            <div id="result-verify" class="mt-2 hidden result-box bg-gray-950 border border-gray-800 rounded-lg p-3"></div>
+          </div>
+        </div>
+
+        <div id="arch-attest" class="hidden mt-4 arch-note bg-gray-950/50 rounded-r-lg p-3 text-xs text-gray-400">
+        </div>
+      </section>
+
+      <!-- Act 6: Key Rotation -->
+      <section id="act6" class="act-card disabled bg-gray-900 rounded-xl border border-gray-800 p-5">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="bg-indigo-500/20 text-indigo-300 text-xs font-bold px-2 py-0.5 rounded">ACT 6</span>
           <h2 class="font-semibold">Key Rotation</h2>
         </div>
         <p class="text-gray-400 text-sm mb-4">Rotate the agent key to a new epoch. The old key is marked as rotated and a new derived key takes its place.</p>
@@ -181,6 +250,10 @@
             <span id="state-runtime" class="text-gray-600">Not booted</span>
           </div>
           <div class="flex justify-between">
+            <span class="text-gray-500">Provider</span>
+            <span id="state-provider" class="text-gray-600">&mdash;</span>
+          </div>
+          <div class="flex justify-between">
             <span class="text-gray-500">Root Key</span>
             <span id="state-rootkey" class="text-gray-600">Not initialized</span>
           </div>
@@ -193,6 +266,55 @@
           <div>
             <span class="text-gray-500 text-xs">Policy Rules</span>
             <div id="state-policy" class="mt-1 text-xs text-gray-600">None</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- How It Works -->
+      <div class="bg-gray-900 rounded-xl border border-gray-800 p-5">
+        <h3 class="font-semibold text-sm mb-3 text-gray-300">How It Works</h3>
+        <div id="how-it-works" class="text-xs space-y-3">
+          <div class="flow-step">
+            <div class="flow-step-dot" id="flow-dot-1"></div>
+            <div>
+              <span class="text-gray-300 font-medium">1. Boot Runtime</span>
+              <p class="text-gray-500 mt-0.5" id="flow-desc-1">Select a TEE provider and initialize the trusted environment.</p>
+            </div>
+          </div>
+          <div class="flow-step">
+            <div class="flow-step-dot" id="flow-dot-2"></div>
+            <div>
+              <span class="text-gray-300 font-medium">2. Seal Root Key</span>
+              <p class="text-gray-500 mt-0.5" id="flow-desc-2">Generate root key &rarr; encrypt with AES-256-GCM &rarr; store sealed in TEE memory.</p>
+            </div>
+          </div>
+          <div class="flow-step">
+            <div class="flow-step-dot" id="flow-dot-3"></div>
+            <div>
+              <span class="text-gray-300 font-medium">3. Derive &amp; Sign</span>
+              <p class="text-gray-500 mt-0.5" id="flow-desc-3">HKDF-SHA256 derives child keys. Private keys never leave the TEE boundary.</p>
+            </div>
+          </div>
+          <div class="flow-step">
+            <div class="flow-step-dot" id="flow-dot-4"></div>
+            <div>
+              <span class="text-gray-300 font-medium">4. Enforce Policy</span>
+              <p class="text-gray-500 mt-0.5" id="flow-desc-4">All policy rules evaluated inside TEE before any signing operation.</p>
+            </div>
+          </div>
+          <div class="flow-step">
+            <div class="flow-step-dot" id="flow-dot-5"></div>
+            <div>
+              <span class="text-gray-300 font-medium">5. Attest</span>
+              <p class="text-gray-500 mt-0.5" id="flow-desc-5">Prove TEE identity and root key binding to external verifiers.</p>
+            </div>
+          </div>
+          <div class="flow-step">
+            <div class="flow-step-dot" id="flow-dot-6"></div>
+            <div>
+              <span class="text-gray-300 font-medium">6. Rotate</span>
+              <p class="text-gray-500 mt-0.5" id="flow-desc-6">Increment epoch, derive new key, mark old key as rotated.</p>
+            </div>
           </div>
         </div>
       </div>
@@ -213,6 +335,37 @@
 // --- State ---
 let currentKeyId = null;
 let currentAddress = null;
+let selectedProvider = 'simulator';
+let lastQuote = null;
+
+// --- Provider descriptions ---
+const providerArchBoot = {
+  simulator: `<strong class="text-indigo-300">Simulator internals:</strong><br/>
+    <code>SimulatedRuntime</code> creates an in-memory sealing key from <code>SHA256("tee-seal-key:" + measurement)</code>.
+    No actual hardware isolation &mdash; useful for development.<br/><br/>
+    <span class="text-gray-500">Measurement:</span> Fixed string <code>"akm-poc-v1"</code> (deterministic for testing)`,
+  dstack: `<strong class="text-pink-300">dstack (TDX) internals:</strong><br/>
+    <code>DstackRuntime</code> connects to the Phala dstack daemon via <code>TappdClient</code>.<br/>
+    <span class="text-gray-300">initialize()</span> calls <code>client.info()</code> to verify reachability,
+    then <code>client.deriveKey("akm/sealed-storage/v1")</code> to get a TEE-bound sealing key.<br/><br/>
+    <span class="text-gray-500">Measurement:</span> <code>tcb_info.mrtd</code> &mdash; real hardware measurement from Intel TDX`
+};
+
+const providerArchInit = {
+  simulator: `<strong class="text-indigo-300">Sealing:</strong> Root key encrypted with AES-256-GCM using <code>SHA256("tee-seal-key:akm-poc-v1")</code> as the key. IV (12B) + AuthTag (16B) + Ciphertext stored in-memory Map.`,
+  dstack: `<strong class="text-pink-300">Sealing:</strong> Root key encrypted with AES-256-GCM using key from <code>TappdClient.deriveKey("akm/sealed-storage/v1").asUint8Array(32)</code>.
+    This key is <em>deterministic and bound to TEE identity</em> &mdash; a different enclave cannot derive the same key.`
+};
+
+const providerArchAttest = {
+  simulator: `<strong class="text-indigo-300">Simulated attestation:</strong><br/>
+    Quote signature = <code>SHA256(signingSecret + payload)</code> where <code>signingSecret = "sim-attest-key:" + mrEnclave</code>.<br/>
+    Verifier re-computes the same hash to validate. No hardware root of trust.`,
+  dstack: `<strong class="text-pink-300">TDX attestation:</strong><br/>
+    Quote generated via <code>TappdClient.tdxQuote(reportData, "sha256")</code> which produces a real Intel TDX quote.<br/>
+    The quote contains hardware-signed measurements (<code>mrtd</code>, RTMRs) that can be verified against Intel's attestation service.<br/>
+    <code>userData</code> = <code>SHA256(nonce + ":" + rootPublicKey)</code> binds the root key to the TEE identity.`
+};
 
 // --- Helpers ---
 function truncate(s, n = 16) {
@@ -242,6 +395,23 @@ function enableAct(n) {
   document.getElementById('act' + n).classList.remove('disabled');
 }
 
+function showArch(id, content) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.innerHTML = content;
+  el.classList.remove('hidden');
+  if (selectedProvider === 'dstack') {
+    el.classList.add('arch-note-dstack');
+  } else {
+    el.classList.remove('arch-note-dstack');
+  }
+}
+
+function markFlowDone(n) {
+  const dot = document.getElementById('flow-dot-' + n);
+  if (dot) dot.classList.add('done');
+}
+
 async function api(path, body) {
   const opts = body !== undefined
     ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
@@ -259,6 +429,15 @@ async function refreshState() {
     document.getElementById('state-runtime').className = s.booted ? 'text-green-400' : 'text-gray-600';
     document.getElementById('state-rootkey').textContent = s.initialized ? 'Initialized' : 'Not initialized';
     document.getElementById('state-rootkey').className = s.initialized ? 'text-green-400' : 'text-gray-600';
+
+    const provEl = document.getElementById('state-provider');
+    if (s.provider) {
+      provEl.innerHTML = s.provider === 'dstack'
+        ? '<span class="badge badge-dstack">dstack</span>'
+        : '<span class="badge badge-provider">simulator</span>';
+    } else {
+      provEl.innerHTML = '&mdash;';
+    }
 
     if (s.keys.length > 0) {
       document.getElementById('state-keys').innerHTML = s.keys.map(k =>
@@ -295,18 +474,43 @@ function setLoading(btnId, loading) {
   }
 }
 
+// --- Provider Selection ---
+function selectProvider(provider) {
+  selectedProvider = provider;
+  const simBtn = document.getElementById('provider-simulator');
+  const dstackBtn = document.getElementById('provider-dstack');
+  if (provider === 'simulator') {
+    simBtn.classList.replace('border-gray-700', 'border-indigo-500');
+    dstackBtn.classList.replace('border-pink-500', 'border-gray-700');
+    dstackBtn.classList.replace('border-indigo-500', 'border-gray-700');
+  } else {
+    dstackBtn.classList.replace('border-gray-700', 'border-pink-500');
+    simBtn.classList.replace('border-indigo-500', 'border-gray-700');
+  }
+}
+
 // --- Actions ---
 
 async function bootRuntime() {
   setLoading('btn-boot', true);
   try {
-    const data = await api('/api/boot', {});
-    showResult('result-boot', `&#10003; Runtime booted<br/>Measurement: <span class="text-indigo-300">${data.measurement}</span>`);
-    addLog('TEE runtime booted', 'success');
+    const data = await api('/api/boot', { provider: selectedProvider });
+    const provLabel = selectedProvider === 'dstack' ? 'dstack (TDX)' : 'Simulator';
+    showResult('result-boot',
+      `&#10003; Runtime booted &mdash; <span class="font-bold">${provLabel}</span><br/>` +
+      `Measurement: <span class="text-indigo-300">${data.measurement}</span>`
+    );
+    addLog(`TEE runtime booted [${provLabel}]`, 'success');
+    showArch('arch-boot', providerArchBoot[selectedProvider]);
+    markFlowDone(1);
     enableAct(2);
     refreshState();
   } catch (e) {
-    showResult('result-boot', `&#10007; ${e.message}`, true);
+    let hint = '';
+    if (selectedProvider === 'dstack' && (e.message.includes('fetch') || e.message.includes('connect') || e.message.includes('ECONNREFUSED'))) {
+      hint = '<br/><span class="text-amber-400 text-xs">Hint: Is the dstack simulator running? Set DSTACK_ENDPOINT env var.</span>';
+    }
+    showResult('result-boot', `&#10007; ${e.message}${hint}`, true);
     addLog(`Boot failed: ${e.message}`, 'error');
   } finally {
     setLoading('btn-boot', false);
@@ -319,6 +523,8 @@ async function initRootKey() {
     const data = await api('/api/init', {});
     showResult('result-init', `&#10003; Root key initialized<br/>Public Key: <span class="text-indigo-300">${truncate(data.rootPublicKey, 32)}</span>`);
     addLog('Root key initialized', 'success');
+    showArch('arch-init', providerArchInit[selectedProvider]);
+    markFlowDone(2);
     enableAct(3);
     refreshState();
   } catch (e) {
@@ -343,8 +549,10 @@ async function createKey() {
     );
     addLog(`Key created for ${agentId}: ${truncate(data.ethereumAddress)}`, 'success');
     document.getElementById('sign-section').classList.remove('hidden');
+    markFlowDone(3);
     enableAct(4);
     enableAct(5);
+    enableAct(6);
     refreshState();
   } catch (e) {
     showResult('result-createKey', `&#10007; ${e.message}`, true);
@@ -400,6 +608,7 @@ async function setupPolicy() {
     );
     addLog(`Policy set: ${data.rules.length} rules`, 'success');
     document.getElementById('policy-tests').classList.remove('hidden');
+    markFlowDone(4);
     refreshState();
   } catch (e) {
     showResult('result-policy', `&#10007; ${e.message}`, true);
@@ -429,6 +638,61 @@ async function testPolicy(ethValue, callerId) {
   }
 }
 
+async function generateQuote() {
+  setLoading('btn-quote', true);
+  try {
+    const data = await api('/api/attestation/quote', {});
+    lastQuote = data.quote;
+    const report = data.quote.report;
+    showResult('result-quote',
+      `&#10003; Attestation quote generated<br/>` +
+      `Provider: <span class="text-indigo-300">${report.provider}</span><br/>` +
+      `mrEnclave: <span class="text-indigo-300">${truncate(report.measurements.mrEnclave, 24)}</span><br/>` +
+      `mrSigner: <span class="text-indigo-300">${truncate(report.measurements.mrSigner, 24)}</span><br/>` +
+      `Nonce: <span class="text-indigo-300">${truncate(data.quote.nonce, 24)}</span><br/>` +
+      `Signature: <span class="text-indigo-300">${truncate(report.signature, 32)}</span><br/>` +
+      `Root PubKey bound: <span class="text-indigo-300">${truncate(data.quote.rootPublicKey, 24)}</span>`
+    );
+    addLog('Attestation quote generated', 'success');
+    document.getElementById('verify-section').classList.remove('hidden');
+    showArch('arch-attest', providerArchAttest[selectedProvider]);
+    markFlowDone(5);
+  } catch (e) {
+    showResult('result-quote', `&#10007; ${e.message}`, true);
+    addLog(`Quote generation failed: ${e.message}`, 'error');
+  } finally {
+    setLoading('btn-quote', false);
+  }
+}
+
+async function verifyQuote() {
+  setLoading('btn-verify', true);
+  try {
+    const data = await api('/api/attestation/verify', { quote: lastQuote });
+    const result = data.result;
+    if (result.valid) {
+      showResult('result-verify',
+        `<span class="text-green-400">&#10003; VALID</span> &mdash; Attestation verified successfully<br/>` +
+        `Provider: <span class="text-indigo-300">${result.report.provider}</span><br/>` +
+        `Timestamp: <span class="text-indigo-300">${new Date(result.report.timestamp).toLocaleTimeString()}</span>`
+      );
+      addLog('Attestation verified: VALID', 'success');
+    } else {
+      showResult('result-verify',
+        `<span class="text-red-400">&#10007; INVALID</span><br/>` +
+        `Reason: <span class="text-amber-400">${result.reason}</span>`,
+        true
+      );
+      addLog(`Attestation invalid: ${result.reason}`, 'error');
+    }
+  } catch (e) {
+    showResult('result-verify', `&#10007; ${e.message}`, true);
+    addLog(`Verification failed: ${e.message}`, 'error');
+  } finally {
+    setLoading('btn-verify', false);
+  }
+}
+
 async function rotateKey() {
   setLoading('btn-rotate', true);
   try {
@@ -442,6 +706,7 @@ async function rotateKey() {
       `Address: <span class="text-indigo-300">${data.newKey.address}</span>`
     );
     addLog(`Key rotated to epoch-${data.newKey.epoch}`, 'success');
+    markFlowDone(6);
     refreshState();
   } catch (e) {
     showResult('result-rotate', `&#10007; ${e.message}`, true);
@@ -451,7 +716,8 @@ async function rotateKey() {
   }
 }
 
-// Poll state every 3 seconds
+// Initial state
+selectProvider('simulator');
 setInterval(refreshState, 3000);
 refreshState();
 </script>

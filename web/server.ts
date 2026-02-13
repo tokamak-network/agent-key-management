@@ -3,9 +3,11 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { serve } from '@hono/node-server';
 import { Hono } from 'hono';
+import type { ITeeRuntime } from '@akm/tee-core';
 import { SimulatedRuntime } from '@akm/tee-simulator';
 import { RootKeyManager, KeyStore, KeyLifecycleManager, createTeeAccount } from '@akm/kms';
 import { PolicyEngine, CallerRule, SpendingLimitRule } from '@akm/policy-engine';
+import { QuoteGenerator, AttestationVerifier } from '@akm/attestation';
 import type { KeyId } from '@akm/types';
 import { parseEther, formatEther, keccak256 } from 'viem';
 import type { TransactionSerializable } from 'viem';
@@ -13,11 +15,13 @@ import type { TransactionSerializable } from 'viem';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // --- Module-level state ---
-let runtime: SimulatedRuntime | null = null;
+let runtime: ITeeRuntime | null = null;
 let rootKeyManager: RootKeyManager | null = null;
 let keyStore: KeyStore | null = null;
 let keyLifecycle: KeyLifecycleManager | null = null;
 let policyEngine: PolicyEngine | null = null;
+let quoteGenerator: QuoteGenerator | null = null;
+let activeProvider: string = '';
 
 // --- App ---
 const app = new Hono();
@@ -29,11 +33,28 @@ app.get('/', (c) => c.html(html));
 // POST /api/boot - Boot the TEE runtime
 app.post('/api/boot', async (c) => {
   try {
-    runtime = new SimulatedRuntime({ fixedMeasurement: 'akm-poc-v1' });
+    const { provider = 'simulator' } = await c.req.json();
+    activeProvider = provider;
+
+    // Reset state
+    rootKeyManager = null;
+    keyStore = null;
+    keyLifecycle = null;
+    policyEngine = null;
+    quoteGenerator = null;
+
+    if (provider === 'dstack') {
+      const { DstackRuntime } = await import('@akm/tee-dstack');
+      runtime = new DstackRuntime({ endpoint: process.env.DSTACK_ENDPOINT });
+    } else {
+      runtime = new SimulatedRuntime({ fixedMeasurement: 'akm-poc-v1' });
+    }
+
     await runtime.initialize();
     keyStore = new KeyStore();
+
     const measurement = await runtime.getMeasurement();
-    return c.json({ measurement });
+    return c.json({ measurement, provider: activeProvider });
   } catch (err) {
     return c.json({ error: (err as Error).message }, 500);
   }
@@ -46,6 +67,7 @@ app.post('/api/init', async (c) => {
     rootKeyManager = new RootKeyManager(runtime.sealedStorage);
     await rootKeyManager.initialize();
     keyLifecycle = new KeyLifecycleManager(rootKeyManager, keyStore!, runtime.sealedStorage);
+    quoteGenerator = new QuoteGenerator(runtime.attestation);
     const rootPublicKey = await rootKeyManager.getPublicKey();
     return c.json({ rootPublicKey });
   } catch (err) {
@@ -192,10 +214,38 @@ app.post('/api/keys/rotate', async (c) => {
   }
 });
 
+// POST /api/attestation/quote - Generate attestation quote
+app.post('/api/attestation/quote', async (c) => {
+  try {
+    if (!quoteGenerator || !rootKeyManager) {
+      return c.json({ error: 'KMS not initialized' }, 400);
+    }
+    const rootPublicKey = await rootKeyManager.getPublicKey();
+    const quote = await quoteGenerator.generate(rootPublicKey);
+    return c.json({ quote });
+  } catch (err) {
+    return c.json({ error: (err as Error).message }, 500);
+  }
+});
+
+// POST /api/attestation/verify - Verify attestation quote
+app.post('/api/attestation/verify', async (c) => {
+  try {
+    const { quote } = await c.req.json();
+    if (!quote) return c.json({ error: 'quote is required' }, 400);
+    const verifier = new AttestationVerifier();
+    const result = verifier.verify(quote);
+    return c.json({ result });
+  } catch (err) {
+    return c.json({ error: (err as Error).message }, 500);
+  }
+});
+
 // GET /api/state - Get current TEE state
 app.get('/api/state', async (c) => {
   const booted = runtime !== null;
   const initialized = rootKeyManager !== null;
+  const provider = activeProvider || null;
   const keys = keyStore ? keyStore.listAll().map((k) => ({
     id: k.id,
     agentId: k.agentId,
@@ -207,7 +257,7 @@ app.get('/api/state', async (c) => {
     ? policyEngine.getRules().map((r) => ({ type: r.type, name: r.name }))
     : [];
 
-  return c.json({ booted, initialized, keys, policyRules });
+  return c.json({ booted, initialized, provider, keys, policyRules });
 });
 
 // --- Start ---
