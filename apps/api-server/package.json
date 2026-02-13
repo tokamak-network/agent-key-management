@@ -19,6 +19,7 @@
     "@akm/policy-engine": "workspace:*",
     "@akm/attestation": "workspace:*",
     "hono": "^4.7.4",
+    "viem": "^2.23.2",
     "zod": "^3.24.1",
     "@hono/node-server": "^1.13.8"
   },
